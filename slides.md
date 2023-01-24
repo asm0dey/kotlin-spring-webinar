@@ -23,7 +23,7 @@ Pasha Finkelshteyn, JetBrains
 
 ---
 layout: image-right
-image: '/avatar.jpg'
+image: 'avatar.jpg'
 ---
 # `whoami`
 
