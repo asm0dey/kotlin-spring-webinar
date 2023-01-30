@@ -7,7 +7,7 @@
     "export-pdf": "slidev export --with-clicks --format pdf --output dist/index.pdf"
   },
   "dependencies": {
-    "@slidev/cli": "^0.38.5",
+    "@slidev/cli": "^0.39.0",
     "@slidev/theme-apple-basic": "^0.20.0",
     "@slidev/theme-default": "*",
     "@slidev/theme-seriph": "*"
