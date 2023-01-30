@@ -62,6 +62,12 @@ https://start.spring.io
 
 
 ---
+layout: section
+---
+
+# `build.gradle.kts`
+
+---
 
 # What happens
 
@@ -119,6 +125,11 @@ tasks.withType<Test> {
 }
 ```
 
+---
+layout: section
+---
+
+# The only generated class
 
 ---
 
@@ -169,6 +180,8 @@ layout: statement
 ---
 
 # Now let's try something real
+
+## MVC + Validation
 
 ---
 
@@ -350,6 +363,80 @@ Field error in object 'person' on field 'age': rejected value [null]
 
 </v-click>
 
+
+---
+layout: section
+---
+
+# JPA
+
+---
+
+# Is this a good idea?
+
+```kotlin
+@Entity
+data class Person(
+    @Id
+    @GeneratedValue(strategy = IDENTITY)
+    var id: Int? = null,
+    @Column(nullable = false)
+    val number: String,
+    @Column(nullable = false)
+    val age:Double,
+)
+```
+
+<v-click>
+
+No
+
+</v-click>
+<v-click>
+
+> JPA is not designed to work with immutable classes or the methods generated automatically by `data` classes
+
+</v-click>
+
+---
+
+# Better way
+
+```kotlin {all|1|3,4,5|5,7,9}
+@Entity
+class Person(
+  @Id
+  @GeneratedValue(strategy = IDENTITY)
+  var id: Int? = null,
+  @Column(nullable = false)
+  var number: String,
+  @Column(nullable = false)
+  var age: Double,
+)
+```
+
+- No `data`
+- Annotations on constructor arguments
+- All arguments are `var`
+
+
+---
+
+# How does it work?
+
+Magic:
+```kotlin
+kotlin("plugin.jpa") version "1.8.0"
+```
+
+<v-clicks>
+
+- Puts annotations on the fields
+- Adds a default constructor in bytecode*!
+
+<small>* In Kotlin the default constructor would not be possible, but in Java it is</small>
+
+</v-clicks>
 
 ---
 
