@@ -16,7 +16,7 @@ colorSchema: 'dark'
 layout: intro
 highlighter: prism
 canvasWidth: 800
-
+monaco: true
 ---
 
 #  Advanced Kotlin Techniques for Spring Developers
@@ -381,7 +381,7 @@ data class Person(
     @GeneratedValue(strategy = IDENTITY)
     var id: Int? = null,
     @Column(nullable = false)
-    val number: String,
+    val name: String,
     @Column(nullable = false)
     val age:Double,
 )
@@ -409,7 +409,7 @@ class Person(
   @GeneratedValue(strategy = IDENTITY)
   var id: Int? = null,
   @Column(nullable = false)
-  var number: String,
+  var name: String,
   @Column(nullable = false)
   var age: Double,
 )
@@ -440,19 +440,149 @@ kotlin("plugin.jpa") version "1.8.0"
 
 ---
 
+# Is this enough?
+
+Not quite.
+
+At the very least we have to redefine `equals` and `hashCode`.
+
+For example…
+```kotlin {all|2-4|4,9|6-8}
+@Entity
+class Person(
+  // properties
+) {
+  // equals…
+  override fun hashCode(): Int {
+    return id ?: 0
+  }
+}
+```
+
+---
+layout: section
+---
+
+# JDBC
+
+---
+
+# Obtain user by id
+
+Let's imagine we need to call the following:
+```sql
+SELECT *
+FROM  users
+WHERE id = ?
+```
+
+---
+
+# In Java
+
+```java {all|1|2|5-13|7|8|9|10|11}
+public List<Person> findByUsername(int id) {
+  return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", new UserRowMapper(), id);
+}
+
+private static class UserRowMapper implements RowMapper<Person> {
+  @Override
+  public Person mapRow(ResultSet resultSet, int i) throws SQLException {
+    int id = resultSet.getInt("id");
+    String name = resultSet.getString("name");
+    Double age = resultSet.getDouble("age");
+    return new Person(id, name, age);
+  }
+}
+```
+---
+
+# Inline
+
+```java {all|2|3-6|7}
+public List<Person> findByUsername(int userId) {
+    return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", (resultSet, i) -> {
+        int id = resultSet.getInt("id");
+        String name = resultSet.getString("name");
+        Double age = resultSet.getDouble("age");
+        return new Person(id1, name, age);
+    }, userId);
+}
+```
+
+<v-click>
+
+<twemoji-loudly-crying-face />
+
+</v-click>
+
+---
+
+# Why?
+
+<v-clicks>
+
+Let's Look at the signature
+
+```java
+public <T> List<T> query(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
+```
+
+Because in <logos-java /> vararg can be only the last… <twemoji-sad-but-relieved-face />
+
+</v-clicks>
+---
+
+# `JdbcTemplate` in Kotlin <flat-color-icons-entering-heaven-alive />
+
+```kotlin
+return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) { rs, _ ->
+    val id = rs.getInt("id")
+    val name = rs.getString("name")
+    val age = rs.getDouble("age")
+    Person(id, name, age)
+}
+```
+
+- vararg doesn't have to be in the last position
+- unneded parameter of a lambda can be named `_`
+
+
+---
+
+# Extension functions
+
+```kotlin {all|1|2|3|4}
+fun <T> JdbcOperations.query(
+  sql: String,
+  vararg args: Any,
+  function: (ResultSet, Int) -> T
+): List<T>
+```
+
+<v-click>
+
+Which allows
+```kotlin {monaco}
+return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) 
+{ rs, _ ->
+    // TODO: ResultSet → Person
+}
+```
+
+</v-click>
+
+
+---
+
 # Let's start simple
 
-```kotlin {all|7-9|8}
-package com.github.asm0dey.sample
-
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.springframework.context.support.beans
-
-val beans =
-    beans {
-        bean { jacksonObjectMapper() }
-    }
+```kotlin {all|2-4|5}
+val beans = beans {
+    bean { jacksonObjectMapper() }
+}
 ```
+
 
 ---
 
@@ -467,11 +597,10 @@ class JsonLogger(private val objectMapper: ObjectMapper) {
     }
 }
 
-val beans =
-    beans {
-        bean { jacksonObjectMapper() }
-        bean(::JsonLogger)
-    }
+val beans = beans {
+    bean { jacksonObjectMapper() }
+    bean(::JsonLogger)
+}
 ```
 
 ---
@@ -479,14 +608,13 @@ val beans =
 # Arbitrary logic
 
 ```kotlin {all|5-7}
-val beans =
-  beans {
+val beans = beans {
     bean { jacksonObjectMapper() }
     bean(::JsonLogger)
     bean("randomGoodThing", isLazyInit = Random.nextBoolean()) {
-      if (Random.nextBoolean()) "Norway" else "Well"
+        if (Random.nextBoolean()) "Norway" else "Well"
     }
-  }
+}
 ```
 
 ---
