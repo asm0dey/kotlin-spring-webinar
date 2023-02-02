@@ -1,22 +1,13 @@
 ---
-# try also 'default' to start simple
 theme: apple-basic
-# random apple-basic from a curated Unsplash collection by Anthony
-# like them? see https://unsplash.com/collections/94734566/slidev
-# apply any windi css classes to the current slide
-# class: 'text-center'
-# https://sli.dev/custom/highlighters.html
 background: https://source.unsplash.com/collection/94734566/1920x1080
-# show line numbers in code blocks
 lineNumbers: true
-# persist drawings in exports and build
 drawings:
   persist: false
 colorSchema: 'dark'
 layout: intro
 highlighter: prism
 canvasWidth: 800
-monaco: true
 ---
 
 #  Advanced Kotlin Techniques for Spring Developers
@@ -481,7 +472,7 @@ WHERE id = ?
 # In Java
 
 ```java {all|1|2|5-13|7|8|9|10|11}
-public List<Person> findByUsername(int id) {
+public List<Person> findById(int id) {
   return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", new UserRowMapper(), id);
 }
 
@@ -500,7 +491,7 @@ private static class UserRowMapper implements RowMapper<Person> {
 # Inline
 
 ```java {all|2|3-6|7}
-public List<Person> findByUsername(int userId) {
+public List<Person> findById(int userId) {
     return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", (resultSet, i) -> {
         int id = resultSet.getInt("id");
         String name = resultSet.getString("name");
@@ -563,7 +554,7 @@ fun <T> JdbcOperations.query(
 <v-click>
 
 Which allows
-```kotlin {monaco}
+```kotlin
 return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) 
 { rs, _ ->
     // TODO: ResultSet → Person
@@ -572,23 +563,58 @@ return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId)
 
 </v-click>
 
+---
+layout: two-cols
+---
+
+<template v-slot:default>
+
+# More on extensions for Spring
+
+https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/
+
+</template>
+<template v-slot:right>
+
+![](/spring-kdoc-qr.svg)
+
+</template>
+
+---
+layout: section
+---
+
+# Configuration
 
 ---
 
 # Let's start simple
 
-```kotlin {all|2-4|5}
+```kotlin {all|2}
 val beans = beans {
     bean { jacksonObjectMapper() }
 }
 ```
+<v-click>
 
+That is very simple
+```kotlin {7|1|2|3,7|4}
+fun jsonMapper(initializer: JsonMapper.Builder.() -> Unit = {}): JsonMapper {
+    val builder = JsonMapper.builder()
+    builder.initializer()
+    return builder.build()
+}
+
+fun jacksonObjectMapper(): ObjectMapper = jsonMapper { addModule(kotlinModule()) }
+```
+
+</v-click>
 
 ---
 
 # Custom bean
 
-```kotlin {1-7|1|3-5|12,1}
+```kotlin {1-7|1|3-5|11|11,1}
 class JsonLogger(private val objectMapper: ObjectMapper) {
     fun log(o: Any) {
         if (o::class.isData) {
@@ -607,7 +633,7 @@ val beans = beans {
 
 # Arbitrary logic
 
-```kotlin {all|5-7}
+```kotlin {all|4-6|5}
 val beans = beans {
     bean { jacksonObjectMapper() }
     bean(::JsonLogger)
@@ -616,6 +642,84 @@ val beans = beans {
     }
 }
 ```
+
+---
+
+# OK How do I use it?
+
+Let's return to our very first file
+
+```kotlin
+runApplication<SampleApplication>(*args)
+```
+
+<v-click>
+
+Let's change it to
+```kotlin {all|2}
+runApplication<SampleApplication>(*args) {
+  addInitializers(beans)
+}
+```
+
+</v-click>
+<v-click>
+
+And run it…
+```plain
+Started SampleApplicationKt in 1.776 seconds (process running for 2.133)
+```
+<twemoji-party-popper />
+
+</v-click>
+
+---
+
+# Let's test it
+Bean:
+```kotlin {all|2|3}
+@Component
+class MyBean(val jsonLogger: JsonLogger) {
+  fun test() = jsonLogger.log("Test")
+}
+```
+Test:
+```kotlin {all|1|3|5}
+@SpringBootTest
+class ConfigTest {
+    @Autowired private lateinit var myBean: MyBean
+    @Test
+    fun testIt() = assertEquals("Test", myBean.test())
+}
+```
+
+---
+layout: two-cols
+---
+
+<template v-slot:default>
+
+# Run it
+
+```plain
+No qualifying bean of type 
+'com.github.asm0dey.sample.JsonLogger'
+  available: expected at least 1 
+  bean which qualifies as autowire candidate
+```
+
+<div v-click="2">
+
+That's because our tests do not call `main`!
+
+</div>
+
+</template>
+<template v-slot:right>
+
+<h1 v-click="1"><img src="/explosion.png"></h1>
+
+</template>
 
 ---
 
@@ -636,3 +740,93 @@ context.initializer.classes: "com.github.asm0dey.sample.BeansInitializer"
 ```
 
 </v-click>
+<v-click>
+
+`Main.kt`:
+```kotlin {all|2}
+fun main(args: Array<String>) {
+    runApplication<SampleApplication>(*args)
+}
+```
+
+</v-click>
+
+---
+layout: section
+---
+
+# Security
+
+---
+
+# Spring Security
+
+```kotlin {all|1|7|8|9|10|11|12|13|14,15|18|7-19}
+val beans = beans {
+    bean { jacksonObjectMapper() }
+    bean(::JsonLogger)
+    bean("random", isLazyInit = Random.nextBoolean()) {
+        if (Random.nextBoolean()) "Norway" else "Well"
+    }
+    bean {
+        val http = ref<HttpSecurity>()
+        http {
+            csrf { disable() }
+            httpBasic { }
+            securityMatcher("/**")
+            authorizeRequests {
+                authorize("/auth/**", authenticated)
+                authorize(anyRequest, permitAll)
+            }
+        }
+        http.build()
+    }
+}
+```
+
+---
+layout: section
+---
+
+# So, what did I learn?
+
+---
+
+# So, what did I learn?
+
+<v-clicks>
+
+- Always generate the project with start.spring.io
+- Reified generics might make an API better
+- Validation is better with Kotlin, but remember about primitives
+- `data` classes should not be used for JPA
+- JDBC is simpler with Kotlin
+- Bean definition DSL is awesome
+- Specifically with security!
+
+</v-clicks>
+
+---
+layout: statement
+---
+
+# Thank you!
+
+---
+
+# Thank you! Questions?
+
+
+
+- <logos-twitter /> asm0di0
+- <logos-mastodon-icon /> @asm0dey@fosstodon.org
+- <logos-google-gmail /> me@asm0dey.site
+- <logos-linkedin-icon /> asm0dey
+- <logos-telegram /> asm0dey
+- <logos-whatsapp-icon /> asm0dey
+- <skill-icons-instagram /> asm0dey
+- <logos-facebook /> asm0dey
+
+---
+layout: end
+---
