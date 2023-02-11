@@ -1,5 +1,6 @@
 ---
 theme: apple-basic
+css: unocss
 background: https://source.unsplash.com/collection/94734566/1920x1080
 lineNumbers: true
 drawings:
@@ -37,6 +38,21 @@ layout: statement
 
 ---
 
+# My application
+
+<v-clicks>
+
+- Simple nano-service
+- MVC
+- Validation
+- JPA
+- JDBC
+- Tests
+
+</v-clicks>
+
+---
+
 # Where do I start?
 
 https://start.spring.io
@@ -53,16 +69,17 @@ https://start.spring.io
 
 
 ---
-layout: section
----
 
-# `build.gradle.kts`
+# 2 files are generated
+
+- `build.gradle.kts`
+- `SpringKotlinStartApplication.kt`
 
 ---
 
 # What happens
 
-```kotlin {all|4|5|6-8|19|22-25|26-29|30-33|38|42|42,44} {maxHeight:'360px'}
+```kotlin 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -120,7 +137,7 @@ tasks.withType<Test> {
 layout: section
 ---
 
-# The only generated class
+# The main class
 
 ---
 
@@ -146,31 +163,22 @@ canvasWidth: 600
 
 # `runApplication`
 
-```kotlin
+```kotlin {all|1|2}
 inline fun <reified T : Any> runApplication(vararg args: String): ConfigurableApplicationContext =
 		SpringApplication.run(T::class.java, *args)
 ```
 
-1. `inline` ← function will be inlined into the caller body
-1. `reified T: Any` ← reified generics!
+<v-click>
 
----
+The first goodie of Spring for Kotlin
 
-# Reified generics
-
-In Java Kotlin's reified generics could be emulated like this:
-
-```java
-public <T> ConfigurableApplicationContext runApplication(clazz: Class<T>, String... args){
-  SpringApplication.run(clazz, args)
-}
-```
+</v-click>
 
 ---
 layout: statement
 ---
 
-# Now let's try something real
+# Let's start implementing
 
 ## MVC + Validation
 
@@ -192,8 +200,8 @@ class PersonController {
 `Person.kt`:
 ```kotlin
 data class Person(
-    val name: String,
-    val age: Double
+  val name: String,
+  val age: Int
 )
 ```
 
@@ -211,7 +219,7 @@ Content-Type: application/json
 <v-click>
 
 ```http {all|5-7}
-HTTP/1.1 400 
+HTTP/1.1 400 Bad Request
 Content-Type: application/json
 {
   "timestamp": 1674735741056,
@@ -222,6 +230,29 @@ Content-Type: application/json
 ```
 
 Since `Person` is non-nullable — it's validated without `@NotNull` annotation
+
+</v-click>
+
+---
+
+# Why? How?
+
+`build.greadle.kts`:
+```kotlin {all|1|3}
+tasks.withType<KotlinCompile> {
+	kotlinOptions {
+		freeCompilerArgs = listOf("-Xjsr305=strict")
+		jvmTarget = "17"
+	}
+}
+```
+<v-click>
+
+## `JSR 305: Annotations for Software Defect Detection`:
+
+> Nullness annotations (e.g., `@NonNull` and `@CheckForNull`)
+
+> Internationalization annotations, such as `@NonNls` or `@Nls`
 
 </v-click>
 
@@ -239,7 +270,7 @@ Content-Type: application/json
 
 On client
 ```http {all|1}
-HTTP/1.1 400
+HTTP/1.1 400 Bad Request
 Content-Type: application/json
 ```
 
@@ -292,8 +323,8 @@ layout: two-cols
 
 ```kotlin {all|3}
 data class Person(
-    val name: String,
-    val age: Double
+  val name: String,
+  val age: Double
 )
 ```
 
@@ -312,7 +343,20 @@ data class Person(
 layout: statement
 ---
 
-# When possible types are converted to primitives
+# In JVM primitive types have default values
+
+---
+
+# These types will be JVM primitives:
+
+- Double
+- Int
+- Float
+- Char
+- Short
+- Byte
+- Boolean
+
 
 ---
 
@@ -338,7 +382,7 @@ Content-Type: application/json
 <v-click>
 
 ```http
-HTTP/1.1 400 
+HTTP/1.1 400 Bad Request
 …
 { "timestamp": 1674760360096, "status": 400, "error": "Bad Request", "path": "/person" }
 ```
@@ -354,6 +398,13 @@ Field error in object 'person' on field 'age': rejected value [null]
 
 </v-click>
 
+---
+
+# Quick summary
+
+- `-Xjsr305=strict` will make the validation easier
+- For JVM primitive types we have to put `@field:NotNull` and mark them nullable
+
 
 ---
 layout: section
@@ -362,38 +413,87 @@ layout: section
 # JPA
 
 ---
+clicks: 3
+---
 
-# Is this a good idea?
+# Nanoentity
 
-```kotlin
+```kotlin {all|2|7,9|2,10}
 @Entity
 data class Person(
-    @Id
-    @GeneratedValue(strategy = IDENTITY)
-    var id: Int? = null,
-    @Column(nullable = false)
-    val name: String,
-    @Column(nullable = false)
-    val age:Double,
+  @Id
+  @GeneratedValue(strategy = IDENTITY)
+  var id: Int? = null,
+  @Column(nullable = false)
+  val name: String,
+  @Column(nullable = false)
+  val age: Int,
+)
+```
+
+<ul>
+  <li v-click="1">
+  <span><code>data</code> class</span>
+  </li>
+  <li v-click="2">
+  <span><code>val name</code> and <code>val age</code></span>
+  </li>
+  <li v-click="3">
+  <span>No no-arg constructor</span>
+  </li>
+</ul>
+
+---
+
+# Improving
+
+`data` classes have `copy`, `equals`, `hashCode`, `copy`, and `componentX` defined
+
+```kotlin {all|2}
+@Entity
+data class Person(
+  @Id
+  @GeneratedValue(strategy = IDENTITY)
+  var id: Int? = null,
+  @Column(nullable = false)
+  val name: String,
+  @Column(nullable = false)
+  val age: Int,
+)
+```
+
+---
+
+# Improving
+
+`data` classes have `copy`, `equals`, `hashCode`, `copy`, and `componentX` defined
+
+```kotlin {2|7,9}
+@Entity
+class Person(
+  @Id
+  @GeneratedValue(strategy = IDENTITY)
+  var id: Int? = null,
+  @Column(nullable = false)
+  val name: String,
+  @Column(nullable = false)
+  val age: Int,
 )
 ```
 
 <v-click>
 
-No
-
-</v-click>
-<v-click>
-
-> JPA is not designed to work with immutable classes or the methods generated automatically by `data` classes
+JPA won's be able to write to `val`
 
 </v-click>
 
 ---
 
-# Better way
+# Improving
 
-```kotlin {all|1|3,4,5|5,7,9}
+`data` classes have `copy`, `equals`, `hashCode`, `copy`, and `componentX` defined
+
+```kotlin {7,9}
 @Entity
 class Person(
   @Id
@@ -402,18 +502,17 @@ class Person(
   @Column(nullable = false)
   var name: String,
   @Column(nullable = false)
-  var age: Double,
+  var age: Int,
 )
 ```
 
-- No `data`
-- Annotations on constructor arguments
-- All arguments are `var`
-
+JPA won's be able to write to `val`
 
 ---
 
-# How does it work?
+# But there is no no-arg constructor!
+
+How to make it work?
 
 Magic:
 ```kotlin
@@ -431,6 +530,23 @@ kotlin("plugin.jpa") version "1.8.0"
 
 ---
 
+# Current result
+
+```kotlin
+@Entity
+class Person(
+  @Id
+  @GeneratedValue(strategy = IDENTITY)
+  var id: Int? = null,
+  @Column(nullable = false)
+  var name: String,
+  @Column(nullable = false)
+  var age: Int,
+)
+```
+
+---
+
 # Is this enough?
 
 Not quite.
@@ -445,7 +561,7 @@ class Person(
 ) {
   // equals…
   override fun hashCode(): Int {
-    return id ?: 0
+  return id ?: 0
   }
 }
 ```
@@ -471,6 +587,7 @@ WHERE id = ?
 
 # In Java
 
+<logos-java />
 ```java {all|1|2|5-13|7|8|9|10|11}
 public List<Person> findById(int id) {
   return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", new UserRowMapper(), id);
@@ -479,29 +596,33 @@ public List<Person> findById(int id) {
 private static class UserRowMapper implements RowMapper<Person> {
   @Override
   public Person mapRow(ResultSet resultSet, int i) throws SQLException {
-    int id = resultSet.getInt("id");
-    String name = resultSet.getString("name");
-    Double age = resultSet.getDouble("age");
-    return new Person(id, name, age);
+  int id = resultSet.getInt("id");
+  String name = resultSet.getString("name");
+  Double age = resultSet.getDouble("age");
+  return new Person(id, name, age);
   }
 }
 ```
 ---
 
-# Inline
+# Let's inline mapper
 
+<logos-java />
 ```java {all|2|3-6|7}
 public List<Person> findById(int userId) {
-    return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", (resultSet, i) -> {
-        int id = resultSet.getInt("id");
-        String name = resultSet.getString("name");
-        Double age = resultSet.getDouble("age");
-        return new Person(id1, name, age);
-    }, userId);
+  return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", (resultSet, i) -> {
+    int id = resultSet.getInt("id");
+    String name = resultSet.getString("name");
+    Double age = resultSet.getDouble("age");
+    return new Person(id1, name, age);
+  }, userId);
 }
 ```
 
 <v-click>
+
+- Too many mappers
+- Parameters too far from query
 
 <twemoji-loudly-crying-face />
 
@@ -526,17 +647,17 @@ Because in <logos-java /> vararg can be only the last… <twemoji-sad-but-reliev
 
 # `JdbcTemplate` in Kotlin <flat-color-icons-entering-heaven-alive />
 
-```kotlin
+```kotlin {all|1|2-5}
 return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) { rs, _ ->
-    val id = rs.getInt("id")
-    val name = rs.getString("name")
-    val age = rs.getDouble("age")
-    Person(id, name, age)
+  val id = rs.getInt("id")
+  val name = rs.getString("name")
+  val age = rs.getDouble("age")
+  Person(id, name, age)
 }
 ```
 
-- vararg doesn't have to be in the last position
-- unneded parameter of a lambda can be named `_`
+- `vararg` doesn't have to be in the last position
+- unused parameter of a lambda can be named `_`
 
 
 ---
@@ -557,7 +678,7 @@ Which allows
 ```kotlin
 return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) 
 { rs, _ ->
-    // TODO: ResultSet → Person
+  // TODO: ResultSet → Person
 }
 ```
 
@@ -567,18 +688,28 @@ return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId)
 layout: two-cols
 ---
 
-<template v-slot:default>
 
-# More on extensions for Spring
+# More on extensions
 
-https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/
 
-</template>
-<template v-slot:right>
+- [spring-beans](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-beans/index.html)
+- [spring-context](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-context/index.html)
+- [spring-core](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-core/index.html)
+- [spring-jdbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-jdbc/index.html)
+- [spring-messaging](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-messaging/index.html)
+- [spring-r2dbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-r2dbc/index.html)
 
-![](/spring-kdoc-qr.svg)
+::right::
 
-</template>
+# for Spring
+
+- [spring-test](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-test/index.html)
+- [spring-tx](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-tx/index.html)
+- [spring-web](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-web/index.html)
+- [spring-webflux](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webflux/index.html)
+- [spring-webmvc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webmvc/index.html)
+
+
 
 ---
 layout: section
@@ -592,40 +723,42 @@ layout: section
 
 ```kotlin {all|2}
 val beans = beans {
-    bean { jacksonObjectMapper() }
+  bean { jacksonObjectMapper() }
 }
 ```
 <v-click>
 
-That is very simple
-```kotlin {7|1|2|3,7|4}
-fun jsonMapper(initializer: JsonMapper.Builder.() -> Unit = {}): JsonMapper {
-    val builder = JsonMapper.builder()
-    builder.initializer()
-    return builder.build()
-}
+Modified Jackson's `ObjectMapper` to work with `data` classes from `jackson-module-kotlin`
 
-fun jacksonObjectMapper(): ObjectMapper = jsonMapper { addModule(kotlinModule()) }
+```kotlin {all|1|3|2}
+@Bean
+fun kotlinMapper(): ObjectMapper {
+  return jacksonObjectMapper()
+}
 ```
 
 </v-click>
+<v-click>
 
+4 lines instead of 1 <twemoji-face-screaming-in-fear />
+
+</v-click>
 ---
 
 # Custom bean
 
 ```kotlin {1-7|1|3-5|11|11,1}
 class JsonLogger(private val objectMapper: ObjectMapper) {
-    fun log(o: Any) {
-        if (o::class.isData) {
-            println(objectMapper.writeValueAsString(o))
-        } else println(o.toString())
-    }
+  fun log(o: Any) {
+    if (o::class.isData) {
+      println(objectMapper.writeValueAsString(o))
+    } else println(o.toString())
+  }
 }
 
 val beans = beans {
-    bean { jacksonObjectMapper() }
-    bean(::JsonLogger)
+  bean { jacksonObjectMapper() }
+  bean(::JsonLogger)
 }
 ```
 
@@ -635,11 +768,11 @@ val beans = beans {
 
 ```kotlin {all|4-6|5}
 val beans = beans {
-    bean { jacksonObjectMapper() }
-    bean(::JsonLogger)
-    bean("randomGoodThing", isLazyInit = Random.nextBoolean()) {
-        if (Random.nextBoolean()) "Norway" else "Well"
-    }
+  bean { jacksonObjectMapper() }
+  bean(::JsonLogger)
+  bean("randomGoodThing", isLazyInit = Random.nextBoolean()) {
+    if (Random.nextBoolean()) "Norway" else "Well"
+  }
 }
 ```
 
@@ -651,6 +784,9 @@ Let's return to our very first file
 
 ```kotlin
 runApplication<SampleApplication>(*args)
+```
+```kotlin
+val beans = { /* */ }
 ```
 
 <v-click>
@@ -687,9 +823,9 @@ Test:
 ```kotlin {all|1|3|5}
 @SpringBootTest
 class ConfigTest {
-    @Autowired private lateinit var myBean: MyBean
-    @Test
-    fun testIt() = assertEquals("Test", myBean.test())
+  @Autowired private lateinit var myBean: MyBean
+  @Test
+  fun testIt() = assertEquals("Test", myBean.test())
 }
 ```
 
@@ -725,9 +861,10 @@ That's because our tests do not call `main`!
 
 # Requires some glue to work
 
-```kotlin {all|1|2}
+```kotlin {all|1|2|3}
+val beans = { /* */ }
 class BeansInitializer : ApplicationContextInitializer<GenericApplicationContext> {
-    override fun initialize(context: GenericApplicationContext) = beans.initialize(context)
+  override fun initialize(context: GenericApplicationContext) = beans.initialize(context)
 }
 ```
 
@@ -745,7 +882,7 @@ context.initializer.classes: "com.github.asm0dey.sample.BeansInitializer"
 `Main.kt`:
 ```kotlin {all|2}
 fun main(args: Array<String>) {
-    runApplication<SampleApplication>(*args)
+  runApplication<SampleApplication>(*args)
 }
 ```
 
@@ -763,24 +900,24 @@ layout: section
 
 ```kotlin {all|1|7|8|9|10|11|12|13|14,15|18|7-19}
 val beans = beans {
-    bean { jacksonObjectMapper() }
-    bean(::JsonLogger)
-    bean("random", isLazyInit = Random.nextBoolean()) {
-        if (Random.nextBoolean()) "Norway" else "Well"
+  bean { jacksonObjectMapper() }
+  bean(::JsonLogger)
+  bean("random", isLazyInit = Random.nextBoolean()) {
+    if (Random.nextBoolean()) "Norway" else "Well"
+  }
+  bean {
+    val http = ref<HttpSecurity>()
+    http {
+      csrf { disable() }
+      httpBasic { }
+      securityMatcher("/**")
+      authorizeRequests {
+        authorize("/auth/**", authenticated)
+        authorize(anyRequest, permitAll)
+      }
     }
-    bean {
-        val http = ref<HttpSecurity>()
-        http {
-            csrf { disable() }
-            httpBasic { }
-            securityMatcher("/**")
-            authorizeRequests {
-                authorize("/auth/**", authenticated)
-                authorize(anyRequest, permitAll)
-            }
-        }
-        http.build()
-    }
+    http.build()
+  }
 }
 ```
 
