@@ -13,6 +13,8 @@ canvasWidth: 800
 
 #  Advanced Kotlin Techniques for Spring Developers
 
+## <logos-kotlin-icon /><logos-spring-icon />
+
 ---
 layout: image-right
 image: 'avatar.jpg'
