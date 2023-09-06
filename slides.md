@@ -8,7 +8,7 @@ drawings:
 colorSchema: 'dark'
 layout: intro
 highlighter: prism
-canvasWidth: 800
+canvasWidth: 920
 ---
 
 #  Advanced Kotlin Techniques for Spring Developers
@@ -402,9 +402,23 @@ Field error in object 'person' on field 'age': rejected value [null]
 
 ---
 
+# Workaround
+
+```yaml {all|4}
+spring:
+  jackson:
+    deserialization:
+      FAIL_ON_NULL_FOR_PRIMITIVES: true
+```
+
+<div v-click>Remember! That works only for Jackson and deserialization!</div>
+
+---
+
 # Quick summary
 
 - `-Xjsr305=strict` will make the validation easier
+- On JVM primitive types have default values
 - For JVM primitive types we have to put `@field:NotNull` and mark them nullable
 
 
@@ -569,6 +583,27 @@ class Person(
 ```
 
 ---
+
+# Is it perfect after fixes?
+
+It is perfect? It's perfectly working.
+
+What we can think about?
+
+<v-click>
+
+```kotlin
+@Id @GeneratedValue(strategy = IDENTITY)
+val id: Long = 0,
+```
+
+This way we won't be able to rewrite an immutable property
+
+</v-click>
+<div v-click>We might also use it for other properties</div>
+
+
+---
 layout: section
 ---
 
@@ -629,6 +664,35 @@ public List<Person> findById(int userId) {
 <twemoji-loudly-crying-face />
 
 </v-click>
+
+---
+
+# Worse example
+
+```sql
+SELECT DISTINCT book.id
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v 4, t.v5, t.v6, t.v7, t.v8,
+                                                             t.v9)), JSON_ARRAY())
+                 FROM (SELECT b.id AS v0 , b.path AS v1 , b.name AS v2 , b.date AS v3 , b.added AS v4 , b.sequence AS v5
+                            , b.sequence_number AS v6 , b.lang AS v7 , b.zip_file AS v8 , b.seqid AS v9 FROM book AS b
+                       WHERE b.id = book.id) AS t)                AS book
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v4, t.v5, t.v6)), JSON_ARRAY())
+                 FROM (SELECT DISTINCT author.id AS v0 , author.fb2id AS v1 , author.first _name AS v2
+                                    , author.middle_name AS v3 , author.last_name AS v4 , author.nickname AS v5 , author.added AS v6
+                       FROM author
+                                JOIN book_author ON book_author.author_id = author.id
+                       WHERE book_author.book_id = book.id) AS t) AS authors
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1)), JSON_ARRAY())
+                 FROM (SELECT DISTINCT genre.name AS v0, genre.id AS v1
+                       FROM genre
+                                JOIN book_genre ON book_genre.genre_id = genre.id
+                       WHERE book_genre.book_id = book.id) AS t)  AS genres
+              , book.sequence
+FROM book
+         JOIN book_author ON book_author.book_id = book.id
+WHERE (book.seqid = 40792 AND book_author.author_id = 34606)
+ORDER BY book.sequence_number ASC NULLS LAST, book.name
+```
 
 ---
 
