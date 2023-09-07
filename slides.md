@@ -31,6 +31,11 @@ image: 'avatar.jpg'
 - <logos-mastodon-icon /> @asm0dey@fosstodon.org
 
 </v-clicks>
+<v-click>
+
+![](/everywhere.jpg)
+
+</v-click>
 
 ---
 layout: statement
@@ -319,9 +324,19 @@ Content-Length: 0
 layout: two-cols
 ---
 
-<template v-slot:default>
+<style>
+  img {
+    width: 300px
+  }
+</style>
 
-# Rechecking
+![](/right.jpg)
+
+::right::
+
+<v-click>
+
+# Let's recheck
 
 ```kotlin {all|3}
 data class Person(
@@ -330,16 +345,7 @@ data class Person(
 )
 ```
 
-</template>
-
-<template v-slot:right>
-<v-click>
-
-![](/right.jpg)
-
 </v-click>
-</template>
-
 
 ---
 layout: statement
@@ -622,6 +628,35 @@ WHERE id = ?
 
 ---
 
+# Worse example
+
+```sql
+SELECT DISTINCT book.id
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v 4, t.v5, t.v6, t.v7, t.v8,
+                                                             t.v9)), JSON_ARRAY())
+                 FROM (SELECT b.id AS v0 , b.path AS v1 , b.name AS v2 , b.date AS v3 , b.added AS v4 , b.sequence AS v5
+                            , b.sequence_number AS v6 , b.lang AS v7 , b.zip_file AS v8 , b.seqid AS v9 FROM book AS b
+                       WHERE b.id = book.id) AS t)                AS book
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v4, t.v5, t.v6)), JSON_ARRAY())
+                 FROM (SELECT DISTINCT author.id AS v0 , author.fb2id AS v1 , author.first _name AS v2
+                                    , author.middle_name AS v3 , author.last_name AS v4 , author.nickname AS v5 , author.added AS v6
+                       FROM author
+                                JOIN book_author ON book_author.author_id = author.id
+                       WHERE book_author.book_id = book.id) AS t) AS authors
+              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1)), JSON_ARRAY())
+                 FROM (SELECT DISTINCT genre.name AS v0, genre.id AS v1
+                       FROM genre
+                                JOIN book_genre ON book_genre.genre_id = genre.id
+                       WHERE book_genre.book_id = book.id) AS t)  AS genres
+              , book.sequence
+FROM book
+         JOIN book_author ON book_author.book_id = book.id
+WHERE (book.seqid = 40792 AND book_author.author_id = 34606)
+ORDER BY book.sequence_number ASC NULLS LAST, book.name
+```
+
+---
+
 # In Java
 
 <logos-java />
@@ -665,34 +700,6 @@ public List<Person> findById(int userId) {
 
 </v-click>
 
----
-
-# Worse example
-
-```sql
-SELECT DISTINCT book.id
-              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v 4, t.v5, t.v6, t.v7, t.v8,
-                                                             t.v9)), JSON_ARRAY())
-                 FROM (SELECT b.id AS v0 , b.path AS v1 , b.name AS v2 , b.date AS v3 , b.added AS v4 , b.sequence AS v5
-                            , b.sequence_number AS v6 , b.lang AS v7 , b.zip_file AS v8 , b.seqid AS v9 FROM book AS b
-                       WHERE b.id = book.id) AS t)                AS book
-              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1, t.v2, t.v3, t.v4, t.v5, t.v6)), JSON_ARRAY())
-                 FROM (SELECT DISTINCT author.id AS v0 , author.fb2id AS v1 , author.first _name AS v2
-                                    , author.middle_name AS v3 , author.last_name AS v4 , author.nickname AS v5 , author.added AS v6
-                       FROM author
-                                JOIN book_author ON book_author.author_id = author.id
-                       WHERE book_author.book_id = book.id) AS t) AS authors
-              , (SELECT COALESCE(JSON_GROUP_ARRAY(JSON_ARRAY(t.v0, t.v1)), JSON_ARRAY())
-                 FROM (SELECT DISTINCT genre.name AS v0, genre.id AS v1
-                       FROM genre
-                                JOIN book_genre ON book_genre.genre_id = genre.id
-                       WHERE book_genre.book_id = book.id) AS t)  AS genres
-              , book.sequence
-FROM book
-         JOIN book_author ON book_author.book_id = book.id
-WHERE (book.seqid = 40792 AND book_author.author_id = 34606)
-ORDER BY book.sequence_number ASC NULLS LAST, book.name
-```
 
 ---
 
@@ -741,7 +748,7 @@ fun <T> JdbcOperations.query(
 <v-click>
 
 Which allows
-```kotlin
+```kotlin {all|1|2-4} {lines:false}
 return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId) 
 { rs, _ ->
   // TODO: ResultSet → Person
@@ -751,31 +758,44 @@ return jdbcTemplate.query("SELECT * FROM users WHERE id = ?", userId)
 </v-click>
 
 ---
-layout: two-cols
----
 
 
-# More on extensions
+# More on extensions for Spring
 
+<div class="flex-justify-between display-flex flex-items-center">
 
-- [spring-beans](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-beans/index.html)
-- [spring-context](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-context/index.html)
-- [spring-core](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-core/index.html)
-- [spring-jdbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-jdbc/index.html)
-- [spring-messaging](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-messaging/index.html)
-- [spring-r2dbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-r2dbc/index.html)
+[spring-beans](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-beans/index.html)
 
-::right::
+[spring-context](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-context/index.html)
 
-# for Spring
+[spring-core](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-core/index.html)
 
-- [spring-test](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-test/index.html)
-- [spring-tx](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-tx/index.html)
-- [spring-web](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-web/index.html)
-- [spring-webflux](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webflux/index.html)
-- [spring-webmvc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webmvc/index.html)
+</div>
+<div class="flex-justify-between display-flex">
 
+[spring-jdbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-jdbc/index.html)
 
+[spring-messaging](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-messaging/index.html)
+
+[spring-r2dbc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-r2dbc/index.html)
+
+</div>
+<div class="flex-justify-between display-flex flex-items-center">
+
+[spring-test](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-test/index.html)
+
+[spring-tx](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-tx/index.html)
+
+[spring-web](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-web/index.html)
+
+</div>
+<div class="flex-justify-around display-flex">
+
+[spring-webflux](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webflux/index.html)
+
+[spring-webmvc](https://docs.spring.io/spring-framework/docs/6.0.4/kdoc-api/spring-webmvc/index.html)
+
+</div>
 
 ---
 layout: section
