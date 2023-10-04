@@ -9,6 +9,12 @@ colorSchema: 'dark'
 layout: intro
 highlighter: prism
 canvasWidth: 920
+exportFilename: 'index'
+export:
+  format: pdf
+  timeout: 30000
+  withClicks: true
+  withToc: false
 ---
 
 #  Advanced Kotlin Techniques for Spring Developers
