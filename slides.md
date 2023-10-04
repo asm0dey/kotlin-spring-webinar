@@ -19,6 +19,9 @@ canvasWidth: 920
 layout: image-right
 image: 'avatar.jpg'
 ---
+
+<style>.smaller{ width: 300px }</style>
+
 # `whoami`
 
 <v-clicks>
@@ -31,7 +34,7 @@ image: 'avatar.jpg'
 - <logos-mastodon-icon /> @asm0dey@fosstodon.org
 
 </v-clicks>
-<v-click>
+<v-click class="smaller">
 
 ![](/everywhere.jpg)
 
